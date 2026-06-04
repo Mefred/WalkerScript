@@ -5,6 +5,7 @@ use crate::token::TokenType::{
 };
 use std::collections::HashMap;
 
+#[derive(Clone, Debug)]
 pub enum TokenType {
     // Keywords
     Let,
@@ -52,13 +53,15 @@ pub enum TokenType {
     EOF,
 }
 
+#[derive(Debug, Clone)]
 pub enum Literal {
     String(String),
     Number(f64),
     Bool(bool),
 }
 
-struct Token {
+#[derive(Debug, Clone)]
+pub struct Token {
     token_type: TokenType,
     lexeme: String,
     literal: Option<Literal>,
@@ -76,13 +79,14 @@ impl Token {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Scanner {
     src: Vec<char>,
     tokens: Vec<Token>,
     start: usize,
     current: usize,
     line: usize,
-    keywords: HashMap<&'static str, TokenType>,
+    keywords: HashMap<String, TokenType>,
 }
 
 impl Scanner {
@@ -94,18 +98,18 @@ impl Scanner {
             current: 0,
             line: 1,
             keywords: HashMap::from([
-                ("and", And),
-                ("else", Else),
-                ("false", False),
-                ("for", For),
-                ("fn", Fn),
-                ("if", If),
-                ("or", Or),
-                ("print", Print),
-                ("return", Return),
-                ("true", True),
-                ("let", Let),
-                ("while", While),
+                (String::from("and"), And),
+                (String::from("else"), Else),
+                (String::from("false"), False),
+                (String::from("for"), For),
+                (String::from("fn"), Fn),
+                (String::from("if"), If),
+                (String::from("or"), Or),
+                (String::from("print"), Print),
+                (String::from("return"), Return),
+                (String::from("true"), True),
+                (String::from("let"), Let),
+                (String::from("while"), While),
             ]),
         }
     }
@@ -114,14 +118,14 @@ impl Scanner {
         return self.current >= self.src.len();
     }
 
-    pub fn scan_tokens(&mut self) -> Vec<TokenType> {
+    pub fn scan_tokens(&mut self) -> Vec<Token> {
         while !self.is_at_end() {
             self.start = self.current;
             self.scan_token();
         }
         self.tokens
             .push(Token::new(TokenType::EOF, "".to_string(), None, self.line));
-        vec![]
+        return self.tokens.clone();
     }
 
     fn advance(&mut self) -> char {
@@ -268,17 +272,27 @@ impl Scanner {
             _ => {
                 if self.isDigit(c) {
                     self.number()
+                } else if self.is_alpha(c) {
+                    self.identifier();
                 } else {
-                    panic!("invalid token")
+                    panic!("invalid token {}", c)
                 }
             }
         }
     }
 
     fn identifier(&mut self) {
-        while self.is_alpha_numeric(self.peek()) {
+        let mut temp = self.peek();
+        while self.is_alpha_numeric(temp) {
             self.advance();
+            temp = self.peek();
         }
-        self.add_token(Identifier, None);
+        let text: String = self.src[self.start..self.current].iter().collect();
+        if self.keywords.get(&text).is_none() {
+            self.add_token(Identifier, None);
+            return;
+        }
+        let type_identifier: TokenType = self.keywords.get(&text).unwrap().clone();
+        self.add_token(type_identifier, None);
     }
 }

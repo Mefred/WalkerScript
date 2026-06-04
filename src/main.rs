@@ -1,5 +1,15 @@
 mod token;
 
+use token::Scanner;
+
 fn main() {
-    println!("Hello, world!");
+    let source = r#"
+        let x = 10;
+        print x + 20;
+    "#;
+
+    let mut scanner = Scanner::new(source);
+    let tokens = scanner.scan_tokens();
+
+    println!("{:#?}", tokens);
 }
